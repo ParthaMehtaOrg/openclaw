@@ -882,7 +882,18 @@ export function buildRunClaudeCliAgentParams(params: RunClaudeCliAgentParams): R
     // Legacy `claudeSessionId` callers predate the shared CLI session contract.
     // Ignore it here so the compatibility wrapper does not accidentally resume
     // an incompatible Claude session on the generic runner path.
-    images: params.images,
+    images: (() => {
+      const p = params.config?.privacy;
+      if (p?.enabled && p.media?.blockAttachments) {
+        if (params.images?.length && p.media.warnOnBlock !== false) {
+          process.stderr.write(
+            `[privacy] dropped ${params.images.length} image attachment(s) — privacy.media.blockAttachments=true\n`,
+          );
+        }
+        return undefined;
+      }
+      return params.images;
+    })(),
     messageChannel: params.messageChannel,
     messageProvider: params.messageProvider,
     currentChannelId: params.currentChannelId,

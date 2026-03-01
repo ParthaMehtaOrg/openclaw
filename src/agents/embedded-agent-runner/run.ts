@@ -1593,7 +1593,18 @@ export async function runEmbeddedAgent(
             userTurnTranscriptRecorder: params.userTurnTranscriptRecorder,
             currentInboundEventKind: params.currentInboundEventKind,
             currentInboundContext: params.currentInboundContext,
-            images: params.images,
+            images: (() => {
+              const p = params.config?.privacy;
+              if (p?.enabled && p.media?.blockAttachments) {
+                if (params.images?.length && p.media.warnOnBlock !== false) {
+                  process.stderr.write(
+                    `[privacy] dropped ${params.images.length} image attachment(s) — privacy.media.blockAttachments=true\n`,
+                  );
+                }
+                return undefined;
+              }
+              return params.images;
+            })(),
             imageOrder: params.imageOrder,
             clientTools: params.clientTools,
             disableTools: params.disableTools,
