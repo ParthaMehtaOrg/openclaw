@@ -1,3 +1,4 @@
+import type { PrivacyConfig } from "../privacy/types.js";
 import type { SilentReplyPolicyShape } from "../shared/silent-reply-policy.js";
 import type { TranscriptsConfig } from "../transcripts/config.js";
 import type { AccessGroupsConfig } from "./types.access-groups.js";
@@ -153,6 +154,8 @@ export type OpenClawConfig = {
   mcp?: McpConfig;
   /** Network-level SSRF protection via an operator-managed forward proxy. */
   proxy?: ProxyConfig;
+  /** Controls what data is included in LLM inference payloads. */
+  privacy?: PrivacyConfig;
 };
 
 export type OpenClawConfigInput = Omit<OpenClawConfig, "models"> & {

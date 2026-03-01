@@ -130,6 +130,7 @@ export function buildCliAgentSystemPrompt(params: {
     userTime,
     userTimeFormat,
     contextFiles: params.contextFiles,
+    privacyConfig: params.config?.privacy,
   });
 }
 

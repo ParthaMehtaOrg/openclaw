@@ -19,6 +19,8 @@ import type { SubagentDelegationMode } from "../config/types.agent-defaults.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
 import { buildMemoryPromptSection } from "../plugins/memory-state.js";
 import type { AgentPromptSurfaceKind } from "../plugins/types.js";
+import { applyRuntimeLineMasking, redactContextFileContent } from "../privacy/payload-redact.js";
+import type { PrivacyConfig } from "../privacy/types.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ActiveProcessSessionReference } from "./bash-process-references.js";
 import type { BootstrapMode } from "./bootstrap-mode.js";
@@ -197,6 +199,7 @@ function buildProjectContextSection(params: {
   files: EmbeddedContextFile[];
   heading: string;
   dynamic: boolean;
+  privacyConfig?: PrivacyConfig;
 }) {
   if (params.files.length === 0) {
     return [];
@@ -226,7 +229,15 @@ function buildProjectContextSection(params: {
     lines.push("");
   }
   for (const file of params.files) {
-    lines.push(`## ${file.path}`, "", sanitizeContextFileContentForPrompt(file.content), "");
+    const content = redactContextFileContent(
+      file.path,
+      sanitizeContextFileContentForPrompt(file.content),
+      params.privacyConfig,
+    );
+    if (content === "" && params.privacyConfig?.systemPrompt?.suppressContextFiles) {
+      continue;
+    }
+    lines.push(`## ${file.path}`, "", content, "");
   }
   return lines;
 }
@@ -718,6 +729,8 @@ export function buildAgentSystemPrompt(params: {
   includeMemorySection?: boolean;
   memoryCitationsMode?: MemoryCitationsMode;
   promptContribution?: ProviderSystemPromptContribution;
+  /** Privacy/redaction config applied before content leaves the machine. */
+  privacyConfig?: PrivacyConfig;
 }) {
   const acpEnabled = params.acpEnabled === true;
   const promptSurface = params.promptSurface ?? "openclaw_main";
@@ -1210,6 +1223,7 @@ export function buildAgentSystemPrompt(params: {
         files: contextFiles.stable,
         heading: "# Project Context",
         dynamic: false,
+        privacyConfig: params.privacyConfig,
       }),
     );
 
@@ -1241,6 +1255,7 @@ export function buildAgentSystemPrompt(params: {
       files: contextFiles.dynamic,
       heading: contextFiles.stable.length > 0 ? "# Dynamic Project Context" : "# Project Context",
       dynamic: true,
+      privacyConfig: params.privacyConfig,
     }),
   );
 
@@ -1300,9 +1315,16 @@ export function buildAgentSystemPrompt(params: {
 
   lines.push(...buildHeartbeatSection({ isMinimal, heartbeatPrompt }));
 
+  const rawRuntimeLine = buildRuntimeLine(
+    runtimeInfo,
+    runtimeChannel,
+    runtimeCapabilities,
+    params.defaultThinkLevel,
+  );
+  const maskedRuntimeLine = applyRuntimeLineMasking(rawRuntimeLine, params.privacyConfig);
   lines.push(
     "## Runtime",
-    buildRuntimeLine(runtimeInfo, runtimeChannel, runtimeCapabilities, params.defaultThinkLevel),
+    maskedRuntimeLine,
     ...(modelIdentityLine ? [modelIdentityLine] : []),
     ...buildActiveProcessSessionReferenceLines(runtimeInfo?.activeProcessSessions),
     `Reasoning: ${reasoningLevel} (hidden unless on/stream). Toggle /reasoning; /status shows Reasoning when enabled.`,
