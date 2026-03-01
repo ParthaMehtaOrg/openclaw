@@ -69,6 +69,7 @@ import { logSessionTurnCreated } from "../../logging/diagnostic.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { CommandLaneClearedError, GatewayDrainingError } from "../../process/command-queue.js";
 import { CommandLane } from "../../process/lanes.js";
+import { redactPiiText } from "../../privacy/payload-redact.js";
 import { defaultRuntime } from "../../runtime.js";
 import { shouldPreserveUserFacingSessionStateForInputProvenance } from "../../sessions/input-provenance.js";
 import {
@@ -1487,6 +1488,15 @@ export async function runAgentTurnWithFallback(params: {
   replyMediaContext?: ReplyMediaContext;
 }): Promise<AgentRunLoopResult> {
   const TRANSIENT_HTTP_RETRY_DELAY_MS = 2_500;
+
+  // Privacy: optionally redact PII from inbound user messages before they
+  // reach the LLM.  Off by default (pii.userMessages is false unless set).
+  const privacyCfg = params.followupRun.run.config?.privacy;
+  const commandBody =
+    privacyCfg?.enabled && privacyCfg.pii?.enabled && privacyCfg.pii.userMessages === true
+      ? redactPiiText(params.commandBody, privacyCfg)
+      : params.commandBody;
+
   let didLogHeartbeatStrip = false;
   let autoCompactionCount = 0;
   // Track payloads sent directly (not via pipeline) during tool flush to avoid duplicates.
@@ -2162,7 +2172,7 @@ export async function runAgentTurnWithFallback(params: {
                     workspaceDir: params.followupRun.run.workspaceDir,
                     cwd: params.followupRun.run.cwd,
                     config: runtimeConfig,
-                    prompt: params.commandBody,
+                    prompt: commandBody,
                     transcriptPrompt: params.transcriptCommandBody,
                     suppressNextUserMessagePersistence: suppressQueuedUserPersistenceForCandidate,
                     userTurnTranscriptRecorder,
@@ -2287,7 +2297,7 @@ export async function runAgentTurnWithFallback(params: {
                     agentHarnessId: embeddedRunHarnessOverride,
                     agentHarnessRuntimeOverride: embeddedRunHarnessOverride,
                     sandboxSessionKey: params.runtimePolicySessionKey,
-                    prompt: params.commandBody,
+                    prompt: commandBody,
                     transcriptPrompt: params.transcriptCommandBody,
                     userTurnTranscriptRecorder,
                     currentInboundEventKind: params.followupRun.currentInboundEventKind,
