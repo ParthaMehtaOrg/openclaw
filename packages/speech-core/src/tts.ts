@@ -31,6 +31,7 @@ import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { redactPiiText } from "openclaw/plugin-sdk/privacy-runtime";
 import { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";
 import { resolveConfigDir, resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
@@ -2054,6 +2055,14 @@ export async function maybeApplyTtsToPayload(params: {
   }
 
   textForAudio = stripMarkdown(textForAudio).trim();
+
+  // Privacy: redact PII from TTS text before it leaves the machine to
+  // the speech provider (ElevenLabs, OpenAI, Edge).
+  const ttsPrivacyCfg = params.cfg.privacy;
+  if (ttsPrivacyCfg?.enabled && ttsPrivacyCfg.pii?.enabled) {
+    textForAudio = redactPiiText(textForAudio, ttsPrivacyCfg);
+  }
+
   if (!textForAudio) {
     return nextPayload;
   }
