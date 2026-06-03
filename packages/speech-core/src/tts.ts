@@ -13,6 +13,7 @@ import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
 import { transcodeAudioBuffer } from "openclaw/plugin-sdk/media-runtime";
 import { clampTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { redactPiiText } from "openclaw/plugin-sdk/privacy-runtime";
 import {
   markReplyPayloadAsTtsSupplement,
   resolveSendableOutboundReplyParts,
@@ -31,7 +32,6 @@ import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { redactPiiText } from "openclaw/plugin-sdk/privacy-runtime";
 import { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";
 import { resolveConfigDir, resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
