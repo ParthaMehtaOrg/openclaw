@@ -124,7 +124,7 @@ export function redactPii(text: string, config?: PrivacyConfig): RedactionResult
   let totalReplacements = 0;
 
   for (const { category, defaultPlaceholder, regex } of PII_PATTERNS) {
-    const categoryRule: PiiCategoryRule | undefined = config.pii.categories?.[category];
+    const categoryRule: PiiCategoryRule | undefined = config.pii?.categories?.[category];
 
     // Allow per-category opt-out even when global pii.enabled=true
     if (categoryRule?.redact === false) {
