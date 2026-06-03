@@ -114,7 +114,8 @@ export type RedactionResult = {
 export function redactPii(text: string, config?: PrivacyConfig): RedactionResult {
   const noOp: RedactionResult = { text, stats: { totalReplacements: 0, byCategory: {} } };
 
-  if (!config?.enabled || !config.pii?.enabled) {
+  // pii.enabled defaults to true when privacy.enabled=true (per documented contract)
+  if (!config?.enabled || config.pii?.enabled === false) {
     return noOp;
   }
 

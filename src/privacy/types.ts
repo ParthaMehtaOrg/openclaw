@@ -94,9 +94,14 @@ export type PrivacyConfig = {
   /**
    * Controls encryption of session transcripts stored on disk.
    *
-   * Session JSONL files contain the full conversation history.  When
-   * `atRest.enabled = true`, OpenClaw will encrypt these files using
-   * AES-256-GCM with a key derived from the provided passphrase.
+   * Session JSONL files contain the full conversation history.  Encryption
+   * uses AES-256-GCM with a key derived from the provided passphrase.
+   *
+   * NOTE: Encryption is currently applied via the `encryptSessionFile` /
+   * `encryptSessionDirectory` API (e.g. `openclaw session encrypt`).
+   * Setting `atRest.enabled = true` stores the passphrase config for those
+   * commands but does NOT automatically encrypt transcript writes in
+   * real-time. Real-time encryption is planned.
    *
    * NOTE: The inference provider still receives plaintext — this only
    * protects data *at rest* on this machine.
