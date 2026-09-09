@@ -515,51 +515,7 @@ export async function prepareEmbeddedAttemptTransport(input: {
   const directProviderStreamFn = providerStreamFn
     ? wrapStreamFnWithMessageTransform(
         providerStreamFn,
-        (messages) => {
-          // Privacy: redact PII in replayed user messages at the model-facing
-          // boundary so historical text doesn't leak to the provider.
-          const privacyCfg = attempt.config?.privacy;
-          if (
-            privacyCfg?.enabled &&
-            privacyCfg.pii?.enabled !== false &&
-            privacyCfg.pii?.userMessages === true
-          ) {
-            return messages.map((msg) => {
-              if (msg.role !== "user") {
-                return msg;
-              }
-              // String content: redact directly.
-              if (typeof msg.content === "string") {
-                const redacted = redactPiiText(msg.content, privacyCfg);
-                return redacted !== msg.content ? { ...msg, content: redacted } : msg;
-              }
-              // Array content: redact text blocks within the array.
-              const content = (msg as { content?: unknown }).content;
-              if (Array.isArray(content)) {
-                let changed = false;
-                const redactedContent = content.map((block: unknown) => {
-                  if (
-                    block &&
-                    typeof block === "object" &&
-                    (block as { type?: string }).type === "text" &&
-                    typeof (block as { text?: unknown }).text === "string"
-                  ) {
-                    const text = (block as { text: string }).text;
-                    const redacted = redactPiiText(text, privacyCfg);
-                    if (redacted !== text) {
-                      changed = true;
-                      return { ...block, text: redacted };
-                    }
-                  }
-                  return block;
-                }) as typeof content;
-                return changed ? ({ ...msg, content: redactedContent } as typeof msg) : msg;
-              }
-              return msg;
-            });
-          }
-          return messages;
-        },
+        (messages) => messages,
         ({ context, ...provider }) =>
           materializeProviderContext({
             ...provider,
@@ -603,6 +559,49 @@ export async function prepareEmbeddedAttemptTransport(input: {
     authProfileId: resolveAttemptStreamAuthProfileId(attempt),
     authStorage: attempt.authStorage,
   });
+  // Privacy: wrap the *selected* stream (not just the provider stream) so
+  // all transports get privacy filtering — user message PII redaction and
+  // media blocking apply regardless of which stream was chosen.
+  const privacyCfg = attempt.config?.privacy;
+  if (privacyCfg?.enabled) {
+    const selectedStreamFn = session.agent.streamFn;
+    session.agent.streamFn = wrapStreamFnWithMessageTransform(selectedStreamFn, (messages) => {
+      if (privacyCfg.pii?.enabled !== false && privacyCfg.pii?.userMessages === true) {
+        return messages.map((msg) => {
+          if (msg.role !== "user") {
+            return msg;
+          }
+          if (typeof msg.content === "string") {
+            const redacted = redactPiiText(msg.content, privacyCfg);
+            return redacted !== msg.content ? { ...msg, content: redacted } : msg;
+          }
+          const content = (msg as { content?: unknown }).content;
+          if (Array.isArray(content)) {
+            let changed = false;
+            const redactedContent = content.map((block: unknown) => {
+              if (
+                block &&
+                typeof block === "object" &&
+                (block as { type?: string }).type === "text" &&
+                typeof (block as { text?: unknown }).text === "string"
+              ) {
+                const text = (block as { text: string }).text;
+                const redacted = redactPiiText(text, privacyCfg);
+                if (redacted !== text) {
+                  changed = true;
+                  return { ...block, text: redacted };
+                }
+              }
+              return block;
+            }) as typeof content;
+            return changed ? ({ ...msg, content: redactedContent } as typeof msg) : msg;
+          }
+          return msg;
+        });
+      }
+      return messages;
+    });
+  }
   // Install inside provider/config wrappers so their full onPayload chain runs
   // before admission hashes the request body that the built-in transport sends.
   session.agent.streamFn = wrapStreamFnWithProviderPromptState({
