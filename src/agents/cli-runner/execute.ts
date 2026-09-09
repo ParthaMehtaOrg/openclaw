@@ -8,6 +8,7 @@ import { sanitizeHostExecEnv } from "../../infra/host-env-security.js";
 import { compareValidSemver } from "../../infra/semver.js";
 import { getAgentScopedMediaLocalRoots } from "../../media/local-roots.js";
 import type { CliBackendThinkingLevel } from "../../plugins/cli-backend.types.js";
+import { redactPiiText } from "../../privacy/payload-redact.js";
 import { applySkillEnvOverridesFromSnapshot } from "../../skills/runtime/env-overrides.js";
 import { appendBootstrapPromptWarning } from "../bootstrap-budget.js";
 import {
@@ -156,9 +157,18 @@ export async function executePreparedCliRun(
       : undefined;
   const nodeSystemPrompt = nodePlacement && shouldSendSystemPrompt ? systemPromptArg : undefined;
 
-  const basePrompt = cliSessionIdToUse
-    ? params.prompt
-    : (context.openClawHistoryPrompt ?? params.prompt);
+  // Privacy: redact PII in the history prompt when user-message redaction
+  // is enabled, so reseeded historical text doesn't leak to the provider.
+  const effectiveHistoryPrompt = (() => {
+    const raw = context.openClawHistoryPrompt;
+    if (!raw) return undefined;
+    const p = params.config?.privacy;
+    if (p?.enabled && p.pii?.enabled !== false && p.pii?.userMessages === true) {
+      return redactPiiText(raw, p);
+    }
+    return raw;
+  })();
+  const basePrompt = cliSessionIdToUse ? params.prompt : (effectiveHistoryPrompt ?? params.prompt);
   let prompt =
     params.controlOperation !== undefined
       ? basePrompt

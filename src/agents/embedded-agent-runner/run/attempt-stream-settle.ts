@@ -525,11 +525,37 @@ export async function prepareEmbeddedAttemptTransport(input: {
             privacyCfg.pii?.userMessages === true
           ) {
             return messages.map((msg) => {
-              if (msg.role !== "user" || typeof msg.content !== "string") {
+              if (msg.role !== "user") {
                 return msg;
               }
-              const redacted = redactPiiText(msg.content, privacyCfg);
-              return redacted !== msg.content ? { ...msg, content: redacted } : msg;
+              // String content: redact directly.
+              if (typeof msg.content === "string") {
+                const redacted = redactPiiText(msg.content, privacyCfg);
+                return redacted !== msg.content ? { ...msg, content: redacted } : msg;
+              }
+              // Array content: redact text blocks within the array.
+              const content = (msg as { content?: unknown }).content;
+              if (Array.isArray(content)) {
+                let changed = false;
+                const redactedContent = content.map((block: unknown) => {
+                  if (
+                    block &&
+                    typeof block === "object" &&
+                    (block as { type?: string }).type === "text" &&
+                    typeof (block as { text?: unknown }).text === "string"
+                  ) {
+                    const text = (block as { text: string }).text;
+                    const redacted = redactPiiText(text, privacyCfg);
+                    if (redacted !== text) {
+                      changed = true;
+                      return { ...block, text: redacted };
+                    }
+                  }
+                  return block;
+                }) as typeof content;
+                return changed ? ({ ...msg, content: redactedContent } as typeof msg) : msg;
+              }
+              return msg;
             });
           }
           return messages;
