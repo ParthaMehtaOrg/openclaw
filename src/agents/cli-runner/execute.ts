@@ -178,30 +178,26 @@ export async function executePreparedCliRun(
   ) {
     throw new Error("paired-node Claude CLI sessions do not support attachments or images");
   }
-  const imagePayload = nodePlacement
-    ? { prompt, imagePaths: [] as string[], cleanupImages: async () => {} }
-    : await prepareCliPromptImagePayload({
-        backend,
-        prompt,
-        // Privacy: suppress all media sources when blockAttachments is enabled.
-        ...(params.config?.privacy?.enabled && params.config.privacy.media?.blockAttachments
-          ? {
-              images: undefined,
-              imageOrder: undefined,
-              imagePrompt: undefined,
-              mediaImageLayout: undefined,
-              media: undefined,
-            }
-          : {
-              imagePrompt: params.imagePrompt,
-              images: params.images,
-              imageOrder: params.imageOrder,
-              mediaImageLayout: params.mediaImageLayout,
-              media: params.media,
-            }),
-        workspaceDir: context.workspaceDir,
-        localRoots: getAgentScopedMediaLocalRoots(params.config ?? {}, params.agentId),
-      });
+  // Privacy: skip image hydration entirely when blockAttachments is enabled.
+  // Clearing individual params is insufficient because prepareCliPromptImagePayload
+  // falls back to scanning the prompt text for image references.
+  const privacyBlockMedia =
+    params.config?.privacy?.enabled === true &&
+    params.config.privacy.media?.blockAttachments === true;
+  const imagePayload =
+    nodePlacement || privacyBlockMedia
+      ? { prompt, imagePaths: [] as string[], cleanupImages: async () => {} }
+      : await prepareCliPromptImagePayload({
+          backend,
+          prompt,
+          imagePrompt: params.imagePrompt,
+          images: params.images,
+          imageOrder: params.imageOrder,
+          mediaImageLayout: params.mediaImageLayout,
+          media: params.media,
+          workspaceDir: context.workspaceDir,
+          localRoots: getAgentScopedMediaLocalRoots(params.config ?? {}, params.agentId),
+        });
   prompt = imagePayload.prompt;
   const promptInputBackend =
     params.controlOperation === "compact" && context.backendResolved.manualCompaction

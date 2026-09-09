@@ -1251,6 +1251,7 @@ export function buildAgentSystemPrompt(params: {
     // line, so toggling it must invalidate the cached stable prefix.
     privacyEnabled: params.privacyConfig?.enabled,
     privacyPiiEnabled: params.privacyConfig?.pii?.enabled,
+    privacyPiiSystemPrompt: params.privacyConfig?.pii?.systemPrompt,
     privacyPiiCategories: params.privacyConfig?.pii?.categories,
     privacySuppressContextFiles: params.privacyConfig?.systemPrompt?.suppressContextFiles,
     privacyMaskHostname: params.privacyConfig?.systemPrompt?.maskHostname,

@@ -8,6 +8,7 @@ import type { AssistantMessage } from "../../../llm/types.js";
 import { getAgentScopedMediaLocalRoots } from "../../../media/local-roots.js";
 import type { ProviderRuntimePluginHandle } from "../../../plugins/provider-hook-runtime.js";
 import { resolveProviderTextTransforms } from "../../../plugins/provider-runtime.js";
+import { redactPiiText } from "../../../privacy/payload-redact.js";
 import type { AgentRunAttemptFailureSource } from "../../agent-run-terminal-outcome.js";
 import type { subscribeEmbeddedAgentSession } from "../../embedded-agent-subscribe.js";
 import { wrapStreamFnTextTransforms } from "../../plugin-text-transforms.js";
@@ -514,7 +515,25 @@ export async function prepareEmbeddedAttemptTransport(input: {
   const directProviderStreamFn = providerStreamFn
     ? wrapStreamFnWithMessageTransform(
         providerStreamFn,
-        (messages) => messages,
+        (messages) => {
+          // Privacy: redact PII in replayed user messages at the model-facing
+          // boundary so historical text doesn't leak to the provider.
+          const privacyCfg = attempt.config?.privacy;
+          if (
+            privacyCfg?.enabled &&
+            privacyCfg.pii?.enabled !== false &&
+            privacyCfg.pii?.userMessages === true
+          ) {
+            return messages.map((msg) => {
+              if (msg.role !== "user" || typeof msg.content !== "string") {
+                return msg;
+              }
+              const redacted = redactPiiText(msg.content, privacyCfg);
+              return redacted !== msg.content ? { ...msg, content: redacted } : msg;
+            });
+          }
+          return messages;
+        },
         ({ context, ...provider }) =>
           materializeProviderContext({
             ...provider,
@@ -529,6 +548,9 @@ export async function prepareEmbeddedAttemptTransport(input: {
               input.sandbox?.enabled && input.sandbox.fsBridge
                 ? { root: input.sandbox.workspaceDir, bridge: input.sandbox.fsBridge }
                 : undefined,
+            blockAllMedia:
+              attempt.config?.privacy?.enabled === true &&
+              attempt.config.privacy.media?.blockAttachments === true,
           }),
       )
     : undefined;

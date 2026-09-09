@@ -687,7 +687,14 @@ export async function materializeProviderContext(params: {
   localRoots?: readonly string[];
   sandbox?: { root: string; bridge: SandboxFsBridge };
   onCurrentTurnImageFailure?: (count: number) => void;
+  /** When true, skip media materialization entirely (privacy media blocking). */
+  blockAllMedia?: boolean;
 }): Promise<ProviderContext> {
+  // Privacy: when media blocking is enabled, skip materialization so no
+  // persisted or recent media facts are hydrated into provider context.
+  if (params.blockAllMedia) {
+    return params.context as ProviderContext;
+  }
   const messages = await materializePromptMediaMessages(params.context.messages as AgentMessage[], {
     workspaceDir: params.workspaceDir,
     model: { input: ["text", "image"] },
