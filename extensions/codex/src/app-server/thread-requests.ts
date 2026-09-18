@@ -316,7 +316,7 @@ export function buildCodexRuntimeThreadConfig(
     privacyPiiEnabled?: boolean;
   } = {},
 ): JsonObject {
-  const configured = buildCodexProjectDocThreadConfig(config, {
+  const configured = buildCodexProjectDocThreadConfig(config, undefined, {
     privacySuppressContextFiles: options.privacySuppressContextFiles,
     privacyPiiEnabled: options.privacyPiiEnabled,
   });

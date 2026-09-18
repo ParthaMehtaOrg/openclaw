@@ -5,16 +5,19 @@ const CODEX_NATIVE_PROJECT_DOC_MAX_BYTES = 128 * 1024;
 
 export function buildCodexProjectDocThreadConfig(
   config?: JsonObject,
-<<<<<<< HEAD
+  effectiveNativeConfig?: CodexConfigReadResponse,
   options?: {
     /** Suppress native project doc when context files are suppressed. */
     privacySuppressContextFiles?: boolean;
-    /** Suppress native project doc when PII redaction is active (native
-     *  Codex reads AGENTS.md directly and cannot apply PII filtering). */
+    /** Suppress native project doc when system-prompt PII redaction is active
+     *  (native Codex reads AGENTS.md directly and cannot apply PII filtering). */
     privacyPiiEnabled?: boolean;
   },
 ): JsonObject {
-  const defaults: JsonObject = { project_doc_max_bytes: CODEX_NATIVE_PROJECT_DOC_MAX_BYTES };
+  const authoredMaxBytes = resolveCodexNativeProjectDocMaxBytes(effectiveNativeConfig);
+  const defaults: JsonObject = {
+    project_doc_max_bytes: authoredMaxBytes ?? CODEX_NATIVE_PROJECT_DOC_MAX_BYTES,
+  };
   const merged = mergeCodexThreadConfigs(defaults, config) ?? defaults;
   // Privacy: enforce zero budget AFTER config merge so explicit thread
   // config overrides cannot defeat the suppression policy.
@@ -22,15 +25,6 @@ export function buildCodexProjectDocThreadConfig(
     return { ...merged, project_doc_max_bytes: 0 };
   }
   return merged;
-=======
-  effectiveNativeConfig?: CodexConfigReadResponse,
-): JsonObject {
-  const authoredMaxBytes = resolveCodexNativeProjectDocMaxBytes(effectiveNativeConfig);
-  const defaults: JsonObject = {
-    project_doc_max_bytes: authoredMaxBytes ?? CODEX_NATIVE_PROJECT_DOC_MAX_BYTES,
-  };
-  return mergeCodexThreadConfigs(defaults, config) ?? defaults;
->>>>>>> origin/main
 }
 
 function resolveCodexNativeProjectDocMaxBytes(
