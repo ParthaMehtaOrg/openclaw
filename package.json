@@ -787,7 +787,6 @@
       "default": "./dist/plugin-sdk/simple-completion-runtime.js"
     },
     "./plugin-sdk/privacy-runtime": {
-      "types": "./dist/plugin-sdk/privacy-runtime.d.ts",
       "default": "./dist/plugin-sdk/privacy-runtime.js"
     },
     "./plugin-sdk/speech-core": {
