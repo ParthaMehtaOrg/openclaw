@@ -325,9 +325,12 @@ export function buildCodexRuntimeThreadConfig(
     nativeCodeModeEnabled?: boolean;
     nativeCodeModeOnlyEnabled?: boolean;
     directOnlyToolNamespaces?: readonly string[];
+    privacySuppressContextFiles?: boolean;
   } = {},
 ): JsonObject {
-  const configured = buildCodexProjectDocThreadConfig(config);
+  const configured = buildCodexProjectDocThreadConfig(config, {
+    privacySuppressContextFiles: options.privacySuppressContextFiles,
+  });
   // Native goal RPCs remain available through app-server, but the Codex goals
   // feature also starts autonomous turns. Keep it disabled until a run owner exists.
   const codeModeConfig: JsonObject = {
@@ -453,7 +456,12 @@ export function buildCodexRuntimeThreadConfigForRun(
   }).threadConfig;
   const baseConfig = buildCodexRuntimeThreadConfig(
     mergeCodexThreadConfigs(restrictedRunConfig, webSearchConfig),
-    options,
+    {
+      ...options,
+      privacySuppressContextFiles:
+        params.config?.privacy?.enabled === true &&
+        params.config.privacy.systemPrompt?.suppressContextFiles === true,
+    },
   );
   const runtimeConfig =
     mergeCodexThreadConfigs(
