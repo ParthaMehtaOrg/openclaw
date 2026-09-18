@@ -1478,10 +1478,6 @@ export function buildAgentSystemPrompt(params: {
   lines.push(
     "## Runtime",
     ...(runtimeInfo?.gitCoauthorPrompt ? [runtimeInfo.gitCoauthorPrompt] : []),
-    applyRuntimeLineMasking(
-      buildRuntimeLine(runtimeInfo, runtimeChannel, runtimeCapabilities, params.defaultThinkLevel),
-      params.privacyConfig,
-    ),
     ...(modelIdentityLine ? [modelIdentityLine] : []),
     `Reasoning=${reasoningLevel}; hidden unless on/stream. Toggle /reasoning; /status shows when enabled.`,
     // Only Runtime facts may move behind tools. Close the region before callers
