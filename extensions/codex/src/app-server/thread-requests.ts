@@ -446,20 +446,20 @@ export function buildCodexRuntimeThreadConfigForRun(
     webSearchAllowed: options.webSearchAllowed,
   }).threadConfig;
   const baseConfig = buildCodexRuntimeThreadConfig(
-<<<<<<< HEAD
-    mergeCodexThreadConfigs(restrictedRunConfig, webSearchConfig),
+    mergeCodexThreadConfigs(config, webSearchConfig),
     {
       ...options,
       privacySuppressContextFiles:
         params.config?.privacy?.enabled === true &&
         params.config.privacy.systemPrompt?.suppressContextFiles === true,
+      // Only suppress native docs for PII when system-prompt redaction is
+      // active. Operators who set pii.systemPrompt=false opt out of
+      // system-prompt filtering and should keep their AGENTS.md guidance.
       privacyPiiEnabled:
-        params.config?.privacy?.enabled === true && params.config.privacy.pii?.enabled !== false,
+        params.config?.privacy?.enabled === true &&
+        params.config.privacy.pii?.enabled !== false &&
+        params.config.privacy.pii?.systemPrompt !== false,
     },
-=======
-    mergeCodexThreadConfigs(config, webSearchConfig),
-    options,
->>>>>>> origin/main
   );
   const runtimeConfig =
     mergeCodexThreadConfigs(
