@@ -3142,24 +3142,6 @@
                   "reference/openclaw-ai",
                   "reference/token-use",
                   "reference/api-usage-costs",
-<<<<<<< HEAD
-                  "reference/transcript-hygiene",
-                  "reference/database-schemas",
-                  "reference/memory-config",
-                  "reference/privacy-config",
-                  "reference/rich-output-protocol",
-                  "reference/session-management-compaction",
-                  "date-time"
-                ]
-              },
-              {
-                "group": "Concept internals",
-                "pages": [
-                  "concepts/typebox",
-                  "concepts/markdown-formatting",
-                  "concepts/typing-indicators",
-=======
->>>>>>> origin/main
                   "concepts/usage-tracking",
                   "reference/prompt-caching",
                   "reference/session-management-compaction",
@@ -3175,6 +3157,7 @@
                   },
                   "reference/transcript-hygiene",
                   "reference/memory-config",
+                  "reference/privacy-config",
                   "reference/database-schemas",
                   {
                     "group": "Database schemas",
